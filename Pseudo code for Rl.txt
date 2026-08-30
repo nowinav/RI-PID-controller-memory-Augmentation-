@@ -1,0 +1,21 @@
+Pseudo code for Rl:
+
+actions_states=[+0.1,-0.1,0]
+final_action
+cur_action 
+prev_action
+output=0
+goal=300
+error=output-goal
+for i =0:N_episodes
+	
+	error=output-goal
+	if error<0:
+		output+=actions_states[0]
+	else:
+		output+=actions_states[1]
+		
+	end
+end
+
+
