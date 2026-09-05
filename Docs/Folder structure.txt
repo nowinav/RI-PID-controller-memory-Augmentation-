@@ -1,0 +1,48 @@
+PID-Memory-RL/
+│
+├── models/
+│   ├── plant_model.slx
+│   ├── controller_harness.slx      # top-level: PID + HybridController wired in
+│   └── hardware_target.slx
+│
+├── +brain/                          # RL agent — training-time only logic separated from runtime
+│   ├── RLAgentWrapper.m             # runtime-only: loads trained agent, exposes getAction()
+│   ├── rewardFunction.m
+│   ├── observationSpec.m
+│   ├── actionSpec.m
+│   └── agents/                      # saved trained agent .mat files live here
+│       └── trained_agent_vX.mat
+│
+├── +habit/                          # Memory module
+│   ├── MemoryStore.m                # add(), query(), prune() — orchestrates the record lifecycle
+│   ├── deriveWeights.m              # perturbation test → W1=1/δVref², W2=1/δerr²
+│   ├── similaritySearch.m           # threshold scan, most-recent-first, early-exit on first hit
+│   ├── gatingCriteria.m             # accept/reject rule: no overshoot, min Vref disturbance
+│   ├── linearRegressionFit.m        # cheap surrogate used both for perturbation test + fallback output
+│   └── store/
+│       └── memory_bank.mat          # array of records: [Vref, err, Vout, W1, W2, timestamp]
+│
+├── +controller/
+│   └── HybridController.m           # runtime arbitration: query habit first, fall back to brain
+│
+├── config/
+│   ├── plant_params.m
+│   ├── rl_hyperparams.m
+│   └── memory_thresholds.m          # perturbation δ step size, overshoot tolerance, disturbance bound
+│
+├── scripts/
+│   ├── run_training.m               # ONLY place brain training happens, saves to +brain/agents/
+│   ├── run_simulation.m             # runtime sim using trained agent + memory
+│   └── run_hardware_test.m
+│
+├── tests/
+│   ├── test_MemoryStore.m
+│   ├── test_deriveWeights.m
+│   ├── test_similaritySearch.m
+│   ├── test_gatingCriteria.m
+│   └── test_HybridController.m
+│
+├── results/                          # gitignored — logs, plots, exported .mat/.csv
+│
+└── docs/
+    └── architecture.md
