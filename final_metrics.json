@@ -1,14 +1,41 @@
 {
-    "Vref_5.0V_With_Disturbance": {
+    "Nominal_12V": {
         "RL_Shaper_Memory": {
-            "final_vout": 4.991,
-            "ss_error_pct": 0.19,
-            "max_drop_after_disturbance_V": 0.325
+            "overshoot_pct": 0.57,
+            "ss_error_pct": 0.57,
+            "settle_time_ms": 11.5,
+            "final_vout": 5.028,
+            "max_drop_V": 0.0
         },
         "Tuned_PI_Raw_Step": {
-            "final_vout": 5.0,
+            "overshoot_pct": 0.04,
             "ss_error_pct": 0.0,
-            "max_drop_after_disturbance_V": 0.155
+            "settle_time_ms": 1.6,
+            "final_vout": 5.0,
+            "max_drop_V": 0.0
         }
+    },
+    "Disturbance_12V_to_8V": {
+        "RL_Shaper_Memory": {
+            "overshoot_pct": 6.18,
+            "ss_error_pct": 2.03,
+            "settle_time_ms": -1.0,
+            "final_vout": 5.102,
+            "max_drop_V": 0.935
+        },
+        "Tuned_PI_Raw_Step": {
+            "overshoot_pct": 0.04,
+            "ss_error_pct": 0.0,
+            "settle_time_ms": 16.5,
+            "final_vout": 5.0,
+            "max_drop_V": 1.412
+        }
+    },
+    "Ablation_No_Shaper": {
+        "overshoot_pct": 25.19,
+        "ss_error_pct": 31.53,
+        "settle_time_ms": -1.0,
+        "final_vout": 3.825,
+        "max_drop_V": 0.0
     }
 }
