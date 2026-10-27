@@ -18,20 +18,30 @@ Direct RL control of power converters is challenging due to plant underdamping (
 
 ## Visual Results
 
-### 1. Robustness to Line Disturbance
+### 1. Plant Model and Open-Loop Response
+The averaged Modelica model includes the physical inductor resistance (\(R_{esr} = 1 \Omega\)) to accurately simulate system damping. The open-loop step response generated in OpenModelica confirms the plant dynamics before RL training.
+
+![Buck Converter Model](buck_OM.png)
+![Open-Loop Plot](buck_plot_OM.png)
+
+### 2. Robustness to Line Disturbance
 When the input voltage suddenly drops from 12V to 8V (at 15 ms), the fixed-gain PI controller (red) crashes to 3.6V. The RL agent (blue), trained on voltage variations, barely dips to 4.2V and recovers instantly.
+
 ![Line Disturbance](line_disturbance.png)
 
-### 2. Ablation: The Necessity of the Reference Shaper
+### 3. Ablation: The Necessity of the Reference Shaper
 Without the shaper (red), the RL agent tracking a raw step excites the plant resonance, causing massive ringing and a 34% overshoot. With the shaper (blue), the trajectory is smooth and controlled.
+
 ![Ablation Shaper](ablation_shaper.png)
 
-### 3. Habit Memory vs. RL Policy Accuracy
+### 4. Habit Memory vs. RL Policy Accuracy
 The Habit Memory (green dots) perfectly tracks the raw RL policy outputs (black line). The bottom plot shows the absolute error between the memory prediction and the neural network is near zero.
+
 ![Duty Comparison](duty_comparison.png)
 
-### 4. Memory Scaling
+### 5. Memory Scaling
 The memory hit rate saturates at roughly 100 stored points, requiring only ~2 KB of storage. During normal operation, it serves 100% of decisions without invoking the neural network.
+
 ![Memory Scaling](habit_memory_scaling.png)
 
 ## Verified Metrics (From `final_metrics.json`)
