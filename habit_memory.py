@@ -1,11 +1,10 @@
 """
-Habit Memory with layered gating.
-Stores (Vin, Vref_shaped, error, d_error) -> duty.
-Falls back to RL if any of 5 gates fails.
+Habit Memory: stores (Vin, Vref_shaped, error, d_error) -> duty mappings.
+Query via trust ellipses + local linear regression.
+Falls back to RL when the neighborhood is sparse OR regression is unreliable.
 """
 
 import numpy as np
-
 
 class HabitMemory:
     def __init__(self,
@@ -13,12 +12,7 @@ class HabitMemory:
                  min_neighbors=8,
                  max_residual=0.05,
                  max_duty_std=0.05):
-        """
-        W1..W4 : trust weights for [Vin, Vref_shaped, error, d_error]
-        min_neighbors : minimum neighbors for regression (L2)
-        max_residual  : max RMS residual of regression (L3)
-        max_duty_std  : max std of neighbor duties (L5)
-        """
+        # W1..W4 : trust weights for [Vin, Vref_shaped, error, d_error]
         self.W = np.array([W1, W2, W3, W4], dtype=np.float64)
         self.min_neighbors = min_neighbors
         self.max_residual  = max_residual
@@ -38,10 +32,6 @@ class HabitMemory:
         return len(self.points)
 
     def query(self, Vin, vref_shaped, error, d_error):
-        """
-        Returns (duty, info_dict) if confident, else (None, info_dict).
-        info_dict reports which gate failed, for debugging.
-        """
         info = {'gate_passed': False, 'n_neigh': 0, 'reason': 'ok'}
 
         if len(self.points) < self.min_neighbors:
@@ -59,7 +49,7 @@ class HabitMemory:
         n_neigh = int(np.sum(mask))
         info['n_neigh'] = n_neigh
 
-        # ---- L2: Density ----
+        # L2: Density
         if n_neigh < self.min_neighbors:
             info['reason'] = f'L2: only {n_neigh} neighbors'
             return None, info
@@ -67,21 +57,21 @@ class HabitMemory:
         X_near = X[mask]
         y_near = y[mask]
 
-        # ---- L4: Novelty (bounding box) ----
+        # L4: Novelty (bounding box)
         lo = X_near.min(axis=0)
         hi = X_near.max(axis=0)
         if np.any(q < lo) or np.any(q > hi):
             info['reason'] = 'L4: query outside bounding box'
             return None, info
 
-        # ---- L5: Consistency (duty variance) ----
+        # L5: Consistency (duty variance)
         duty_std = float(np.std(y_near))
         info['duty_std'] = duty_std
         if duty_std > self.max_duty_std:
             info['reason'] = f'L5: duty std {duty_std:.4f}'
             return None, info
 
-        # ---- L3: Residual (regression fit) ----
+        # L3: Residual (regression fit)
         X_aug = np.hstack([X_near, np.ones((n_neigh, 1))])
         try:
             coef, *_ = np.linalg.lstsq(X_aug, y_near, rcond=None)
@@ -96,7 +86,6 @@ class HabitMemory:
             info['reason'] = f'L3: residual {residual:.4f}'
             return None, info
 
-        # ---- All gates passed ----
         q_aug = np.append(q, 1.0)
         duty_pred = float(np.dot(coef, q_aug))
         duty_pred = float(np.clip(duty_pred, 0.0, 0.95))
@@ -105,7 +94,6 @@ class HabitMemory:
 
 
 class HabitController:
-    """Wraps a trained SB3 policy. Uses memory first, falls back to RL."""
     def __init__(self, policy, memory, use_memory=True):
         self.policy = policy
         self.memory = memory
@@ -121,10 +109,6 @@ class HabitController:
         }
 
     def predict(self, obs, Vin, deterministic=True):
-        """
-        obs: normalized observation [vref_shaped/Vin, error/Vin, d_error/Vin, Vout/Vin]
-        Vin: actual Vin value (used as 4th memory dimension)
-        """
         if self.use_memory:
             duty, info = self.memory.query(Vin, obs[0], obs[1], obs[2])
             if duty is not None:

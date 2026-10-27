@@ -2,7 +2,7 @@ model BuckConverter_Averaged
   extends Modelica.Icons.Example;
 
   // Parameters
-  parameter Modelica.Units.SI.Voltage Vin = 14;
+  parameter Modelica.Units.SI.Voltage Vin = 12;
   parameter Modelica.Units.SI.Inductance L = 100e-6;
   parameter Modelica.Units.SI.Capacitance C = 100e-6;
   parameter Modelica.Units.SI.Resistance R = 10;

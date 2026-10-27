@@ -1,0 +1,14 @@
+{
+    "RL_Shaper_Memory": {
+        "overshoot_pct": 9.4,
+        "ss_error_pct": 5.8,
+        "settle_time_ms": -1.0,
+        "final_vout": 5.29
+    },
+    "Tuned_PI_Raw_Step": {
+        "overshoot_pct": 0.04,
+        "ss_error_pct": 0.0,
+        "settle_time_ms": 1.6,
+        "final_vout": 5.0
+    }
+}
