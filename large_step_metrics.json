@@ -1,0 +1,13 @@
+{
+    "Target_Vref": 8.0,
+    "RL_Shaper": {
+        "overshoot_pct": -7.21,
+        "final_vout": 7.423,
+        "ss_error_pct": 7.21
+    },
+    "Tuned_PI": {
+        "overshoot_pct": 0.04,
+        "final_vout": 8.0,
+        "ss_error_pct": 0.0
+    }
+}
