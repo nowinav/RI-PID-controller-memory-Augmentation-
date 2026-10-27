@@ -1,14 +1,13 @@
 """
 Gymnasium environment wrapping the averaged buck converter FMU.
-Now exposes Vin for the habit memory's schema gate.
+Observation (4-dim): [Vref_shaped, error, d_error, Vout] / Vin
+Action (1-dim):      duty ∈ [0, 0.95]
 """
-
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
-
 
 class BuckConverterEnv(gym.Env):
     metadata = {"render_modes": []}
@@ -17,7 +16,7 @@ class BuckConverterEnv(gym.Env):
                  Tf=0.03, Ts=1e-4, Vin=12.0, n_substeps=10,
                  shaper_freq_hz=80.0,
                  vref_range=(4.8, 5.2),
-                 vin_range=None):
+                 vin_range=(8.0, 14.0)):
         super().__init__()
         self.fmu_path = fmu_path
         self.Tf = Tf
@@ -101,10 +100,14 @@ class BuckConverterEnv(gym.Env):
         ref_scale = max(abs(self.Vref), 1.0)
         err_rel = error / ref_scale
         tracking_cost = 3.0 * min(abs(err_rel), 1.0) ** 2
+        
         overshoot_rel = max(0.0, Vout - self.Vref_shaped) / ref_scale
         overshoot_cost = 2.0 * min(overshoot_rel, 1.0) ** 2
+        
         d_err_rel = d_error / ref_scale
-        oscillation_cost = 5.0 * min(d_err_rel ** 2, 1.0)
+        # HEAVILY PENALIZE OSCILLATION TO PREVENT CHATTERING
+        oscillation_cost = 20.0 * min(d_err_rel ** 2, 1.0) 
+        
         settle_bonus = 1.0 if abs(err_rel) < 0.05 else 0.0
         return -tracking_cost - overshoot_cost - oscillation_cost + settle_bonus
 
@@ -117,7 +120,6 @@ class BuckConverterEnv(gym.Env):
         if self.vin_range is not None:
             lo_v, hi_v = self.vin_range
             self.Vin = float(self.np_random.uniform(lo_v, hi_v))
-            # Requires Vin to be a runtime input port on the FMU
             self._set("Vin", self.Vin)
 
         self.fmu.reset()
@@ -127,10 +129,10 @@ class BuckConverterEnv(gym.Env):
 
         self.Vref_shaped = 0.0
         self.Vref_shaped_dot = 0.0
+
         self.t = 0.0
         self.step_count = 0
         self._set("duty_cycle", 0.0)
-        self._set("Vref", self.Vref)
 
         Vout0 = self._get("Vout")
         self.prev_error = self.Vref_shaped - Vout0
@@ -140,8 +142,10 @@ class BuckConverterEnv(gym.Env):
     def step(self, action):
         duty = float(np.clip(action[0], 0.0, 0.95))
         self._update_shaper()
+
         self._set("duty_cycle", duty)
-        self._set("Vref", self.Vref)
+        self._set("Vin", self.Vin)
+        
         for _ in range(self.n_substeps):
             self.fmu.doStep(currentCommunicationPoint=self.t,
                             communicationStepSize=self.dt_sub)

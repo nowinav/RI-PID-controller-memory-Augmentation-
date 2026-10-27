@@ -1,8 +1,6 @@
 """
-Trains a TD3 agent on the averaged buck converter.
-Vref range is set here and passed to the environment.
+Trains a TD3 agent to control the averaged buck converter with Vin variations.
 """
-
 import os
 import numpy as np
 from stable_baselines3 import TD3
@@ -10,18 +8,12 @@ from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.callbacks import CheckpointCallback
 from buck_env import BuckConverterEnv
 
-# ---- Change this to control the training range ----
-VREF_RANGE = (3.0 , 8.0)     # full envelope
-# VREF_RANGE = (4.8, 5.2)   # narrow
-# VREF_RANGE = (6.5, 7.5)   # high-Vref only
-
 MODEL_DIR = "models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-env = BuckConverterEnv(vref_range=VREF_RANGE)
+env = BuckConverterEnv(vin_range=(8.0, 14.0))
 print(f"Env ready. Observation shape: {env.observation_space.shape}")
-print(f"Vref range: {VREF_RANGE}")
-print(f"Episode length: {env.n_steps} steps × {env.Ts*1000:.3f} ms = {env.Tf*1000:.1f} ms\n")
+print(f"Training with Vin varying from {env.vin_range[0]}V to {env.vin_range[1]}V")
 
 n_actions = env.action_space.shape[0]
 action_noise = NormalActionNoise(
@@ -53,7 +45,7 @@ model = TD3(
 checkpoint = CheckpointCallback(
     save_freq=50_000,
     save_path=MODEL_DIR,
-    name_prefix="td3_buck",
+    name_prefix="td3_buck_robust",
 )
 
 TOTAL_STEPS = 300_000
@@ -71,4 +63,4 @@ finally:
 
 final_path = os.path.join(MODEL_DIR, "td3_buck_final")
 model.save(final_path)
-print(f"\nModel saved to {final_path}.zip")
+print(f"\nRobust model saved to {final_path}.zip")
